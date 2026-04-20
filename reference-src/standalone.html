@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Convert Google Maps and OpenStreetMap links to BayernAtlas URLs">
+    <title>Maps2BayernAtlas - Standalone</title>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --primary-hover: #0052a3;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --border: #e2e8f0;
+            --success: #2f855a;
+            --error: #c53030;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+        }
+        header { text-align: center; margin-bottom: 2rem; }
+        h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--primary); }
+        p.subtitle { color: var(--text-muted); font-size: 0.9rem; }
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .tabs { display: flex; gap: 0.25rem; background: var(--bg); border-radius: 8px; padding: 0.25rem; }
+        .tab-btn {
+            padding: 0.5rem 1rem; border: none; background: transparent; border-radius: 6px;
+            cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); transition: all 0.2s;
+        }
+        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-btn:hover:not(.active) { color: var(--text-main); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .lang-switcher { display: flex; gap: 0.25rem; background: var(--bg); border-radius: 6px; padding: 0.25rem; }
+        .lang-btn {
+            padding: 0.375rem 0.625rem; border: none; background: transparent; border-radius: 4px;
+            cursor: pointer; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); transition: all 0.2s;
+        }
+        .lang-btn.active { background: var(--primary); color: white; }
+        .lang-btn:hover:not(.active) { background: var(--border); }
+        .input-group { margin-bottom: 1.5rem; }
+        input[type="text"] {
+            width: 100%; padding: 12px 16px; font-size: 1rem;
+            border: 2px solid var(--border); border-radius: 8px; transition: border-color 0.2s; outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+        button.btn-convert {
+            width: 100%; padding: 12px; background-color: var(--primary); color: white;
+            border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s;
+        }
+        button.btn-convert:hover { background-color: var(--primary-hover); }
+        button.btn-convert:disabled { background-color: var(--text-muted); cursor: not-allowed; }
+        .result-area { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: none; }
+        .result-area.active { display: block; }
+        .result-item { margin-bottom: 1rem; }
+        .result-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .result-value { font-size: 1rem; font-weight: 500; word-break: break-all; }
+        .result-link-box {
+            display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.875rem 1rem;
+            background: #e6f2ff; border: 1px solid var(--primary); border-radius: 8px;
+            text-decoration: none; color: #004080; font-weight: 500; transition: background-color 0.2s; margin-top: 0.25rem;
+        }
+        .result-link-box:hover { background: #cce4ff; }
+        .result-link-box svg { width: 20px; height: 20px; flex-shrink: 0; stroke: currentColor; }
+        .result-link-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+        .copy-btn { flex-shrink: 0; padding: 0.5rem; background: #fff; border: 1px solid var(--primary); border-radius: 6px; cursor: pointer; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; }
+        .copy-btn:hover { background: #f0f7ff; }
+        .copy-btn svg { width: 16px; height: 16px; stroke: var(--primary); }
+        .toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; font-size: 17px; opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+        .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        .toast.error { background-color: var(--error); }
+        .toast.success { background-color: var(--success); }
+        .note { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.875rem; color: #92400e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 data-i18n="header_title">Maps2BayernAtlas</h1>
+        <p class="subtitle" data-i18n="header_subtitle">Konvertiert Google Maps & OpenStreetMap Standorte zu BayernAtlas</p>
+    </header>
+
+    <div class="nav-bar">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="converter" data-i18n="tab_converter">Konverter</button>
+            <button class="tab-btn" data-tab="info" data-i18n="tab_info">Info</button>
+        </div>
+        <div class="lang-switcher">
+            <button class="lang-btn active" data-lang="de">DE</button>
+            <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+    </div>
+
+    <div id="tab-converter" class="tab-content active">
+        <div class="note" data-i18n="note_standalone">
+            Standalone-Version: Funktioniert nur mit vollständigen URLs (nicht mit Kurzlinks wie maps.app.goo.gl)
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="urlInput" data-i18n-placeholder="input_placeholder" placeholder="Google Maps oder OSM URL hier einfügen..." autocomplete="off">
+        </div>
+
+        <button id="convertBtn" class="btn-convert" data-i18n="btn_convert">Link konvertieren</button>
+
+        <div id="resultArea" class="result-area">
+            <div class="result-item">
+                <div class="result-label" data-i18n="label_wgs84">Koordinaten (WGS84)</div>
+                <div class="result-value" id="resCoords">-</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label" data-i18n="label_utm">UTM Zone 32N (Rechtswert / Hochwert)</div>
+                <div class="result-value" id="resUtm">-</div>
+            </div>
+            <div class="result-item">
+                <div class="result-label" data-i18n="label_link">BayernAtlas Link</div>
+                <a href="#" class="result-link-box" id="resLink" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15,3 21,3 21,9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    <span class="result-link-text" id="resUrl">—</span>
+                    <button type="button" class="copy-btn" onclick="event.preventDefault(); copyLink();" title="Link kopieren">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                    </button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-info" class="tab-content">
+        <h3 data-i18n="info_title">Unterstützte URL-Formate</h3>
+        <ul style="margin: 1rem 0; padding-left: 1.5rem; color: var(--text-muted);">
+            <li>Google Maps: <code>https://www.google.com/maps/@48.137,11.575,15z</code></li>
+            <li>Google Maps: <code>https://www.google.de/maps/place/.../@lat,lon/data=!3d..!4d..</code></li>
+            <li>OpenStreetMap: <code>https://www.openstreetmap.org/#map=19/49.02/12.08</code></li>
+        </ul>
+        <p style="color: var(--text-muted); font-size: 0.875rem;" data-i18n="info_note">
+            Hinweis: Kurzlinks (maps.app.goo.gl) funktionieren in dieser Standalone-Version nicht. Bitte öffne den Kurzlink im Browser und kopiere die vollständige URL.
+        </p>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// Bavaria Polygon (expanded ~5km buffer)
+const BAVARIA_POLYGON = [
+    [8.90, 50.10], [9.35, 50.30], [9.85, 50.50], [10.40, 50.50], [10.85, 50.60],
+    [11.50, 50.55], [12.00, 50.50], [12.15, 50.40], [12.35, 50.15], [12.60, 50.00],
+    [12.85, 50.00], [13.10, 49.80], [13.25, 49.60], [13.50, 49.40], [13.60, 49.20],
+    [13.65, 49.00], [13.85, 48.85], [13.95, 48.70], [13.90, 48.55], [13.85, 48.40],
+    [13.55, 48.20], [13.10, 48.20], [12.95, 48.15], [12.80, 47.90], [13.10, 47.75],
+    [12.95, 47.60], [12.80, 47.55], [12.50, 47.55], [12.25, 47.50], [12.00, 47.35],
+    [11.50, 47.38], [11.20, 47.28], [10.90, 47.28], [10.70, 47.40], [10.40, 47.45],
+    [10.10, 47.38], [10.00, 47.45], [9.90, 47.43], [9.60, 47.43], [9.40, 47.45],
+    [9.45, 47.70], [9.60, 47.85], [9.65, 48.00], [9.75, 48.20], [9.90, 48.35],
+    [9.95, 48.55], [9.85, 48.75], [9.80, 48.95], [9.60, 49.15], [9.35, 49.30],
+    [9.30, 49.50], [9.25, 49.70], [9.10, 49.80], [8.95, 49.95], [8.90, 50.10]
+];
+
+// Translations
+const translations = {
+    de: {
+        header_title: "Maps2BayernAtlas",
+        header_subtitle: "Konvertiert Google Maps & OpenStreetMap Standorte zu BayernAtlas",
+        tab_converter: "Konverter",
+        tab_info: "Info",
+        input_placeholder: "Google Maps oder OSM URL hier einfügen...",
+        btn_convert: "Link konvertieren",
+        label_wgs84: "Koordinaten (WGS84)",
+        label_utm: "UTM Zone 32N (Rechtswert / Hochwert)",
+        label_link: "BayernAtlas Link",
+        toast_empty_url: "Bitte geben Sie eine gültige URL ein",
+        toast_outside_bavaria: "Der Standort liegt außerhalb Bayerns",
+        toast_no_coords: "Koordinaten konnten nicht aus der URL extrahiert werden",
+        toast_copy_success: "Link in Zwischenablage kopiert!",
+        toast_copy_failed: "Link konnte nicht kopiert werden",
+        note_standalone: "Standalone-Version: Funktioniert nur mit vollständigen URLs (nicht mit Kurzlinks wie maps.app.goo.gl)",
+        info_title: "Unterstützte URL-Formate",
+        info_note: "Hinweis: Kurzlinks (maps.app.goo.gl) funktionieren in dieser Standalone-Version nicht. Bitte öffne den Kurzlink im Browser und kopiere die vollständige URL."
+    },
+    en: {
+        header_title: "Maps2BayernAtlas",
+        header_subtitle: "Convert Google Maps & OpenStreetMap locations to BayernAtlas",
+        tab_converter: "Converter",
+        tab_info: "Info",
+        input_placeholder: "Paste Google Maps or OSM URL here...",
+        btn_convert: "Convert Link",
+        label_wgs84: "Coordinates (WGS84)",
+        label_utm: "UTM Zone 32N (Easting / Northing)",
+        label_link: "BayernAtlas Link",
+        toast_empty_url: "Please enter a valid URL",
+        toast_outside_bavaria: "Location is outside Bavaria",
+        toast_no_coords: "Could not extract coordinates from URL",
+        toast_copy_success: "Link copied to clipboard!",
+        toast_copy_failed: "Failed to copy link",
+        note_standalone: "Standalone version: Only works with full URLs (not short links like maps.app.goo.gl)",
+        info_title: "Supported URL Formats",
+        info_note: "Note: Short links (maps.app.goo.gl) do not work in this standalone version. Please open the short link in your browser and copy the full URL."
+    }
+};
+
+let currentLang = localStorage.getItem('lang') || 'de';
+
+// GRS80 (ETRS89) Constants for UTM conversion
+const A = 6378137.0;
+const INV_F = 298.257222101;
+const K0 = 0.9996;
+const FALSE_E = 500000.0;
+const FALSE_N = 0.0;
+const LON0 = 9.0; // Central meridian for UTM Zone 32N
+
+function degToRad(deg) { return deg * Math.PI / 180; }
+
+// Convert WGS84 to UTM Zone 32N
+function wgs84ToUtm32(lat, lon) {
+    const radLat = degToRad(lat);
+    const radLon = degToRad(lon);
+    const radLon0 = degToRad(LON0);
+
+    const f = 1.0 / INV_F;
+    const e2 = 2 * f - f * f;
+    const ep2 = e2 / (1 - e2);
+
+    const N = A / Math.sqrt(1 - e2 * Math.sin(radLat) ** 2);
+    const T = Math.tan(radLat) ** 2;
+    const C = ep2 * Math.cos(radLat) ** 2;
+    const A_val = (radLon - radLon0) * Math.cos(radLat);
+
+    const M = A * (
+        (1 - e2/4 - 3*e2*e2/64 - 5*Math.pow(e2,3)/256) * radLat
+        - (3*e2/8 + 3*e2*e2/32 + 45*Math.pow(e2,3)/1024) * Math.sin(2*radLat)
+        + (15*e2*e2/256 + 45*Math.pow(e2,3)/1024) * Math.sin(4*radLat)
+        - (35*Math.pow(e2,3)/3072) * Math.sin(6*radLat)
+    );
+
+    const easting = FALSE_E + K0 * N * (
+        A_val + (1 - T + C) * Math.pow(A_val, 3) / 6
+        + (5 - 18*T + T*T + 72*C - 58*ep2) * Math.pow(A_val, 5) / 120
+    );
+
+    const northing = FALSE_N + K0 * (
+        M + N * Math.tan(radLat) * (
+            Math.pow(A_val, 2) / 2
+            + (5 - T + 9*C + 4*C*C) * Math.pow(A_val, 4) / 24
+            + (61 - 58*T + T*T + 600*C - 330*ep2) * Math.pow(A_val, 6) / 720
+        )
+    );
+
+    return { easting: Math.round(easting), northing: Math.round(northing) };
+}
+
+// Ray-casting algorithm for point-in-polygon
+function isInsideBavaria(lat, lon) {
+    const polygon = BAVARIA_POLYGON;
+    const n = polygon.length;
+    let inside = false;
+
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+        const xi = polygon[i][0], yi = polygon[i][1];
+        const xj = polygon[j][0], yj = polygon[j][1];
+
+        if (((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+// Extract coordinates from URL
+function extractCoordinates(url) {
+    // Pattern 1: !3d...!4d... (Google Maps place markers)
+    let match = url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (match) return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+
+    // Pattern 2: @lat,lon (Google Maps viewport)
+    match = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (match) return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+
+    // Pattern 3: OpenStreetMap #map=zoom/lat/lon
+    match = url.match(/#map=\d+\/(-?\d+\.\d+)\/(-?\d+\.\d+)/);
+    if (match) return { lat: parseFloat(match[1]), lon: parseFloat(match[2]) };
+
+    // Pattern 4: OpenStreetMap ?mlat=&mlon=
+    const latMatch = url.match(/[?&]mlat=(-?\d+\.\d+)/);
+    const lonMatch = url.match(/[?&]mlon=(-?\d+\.\d+)/);
+    if (latMatch && lonMatch) return { lat: parseFloat(latMatch[1]), lon: parseFloat(lonMatch[1]) };
+
+    return null;
+}
+
+// UI Elements
+const urlInput = document.getElementById('urlInput');
+const convertBtn = document.getElementById('convertBtn');
+const resultArea = document.getElementById('resultArea');
+const resCoords = document.getElementById('resCoords');
+const resUtm = document.getElementById('resUtm');
+const resLink = document.getElementById('resLink');
+const resUrl = document.getElementById('resUrl');
+const toast = document.getElementById('toast');
+
+function t(key) { return translations[currentLang]?.[key] || key; }
+
+function showToast(message, type = 'error') {
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (translations[lang][key]) el.textContent = translations[lang][key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.dataset.i18nPlaceholder;
+        if (translations[lang][key]) el.placeholder = translations[lang][key];
+    });
+}
+
+function copyLink() {
+    const url = resLink.href;
+    if (url && url !== '#') {
+        navigator.clipboard.writeText(url).then(() => showToast(t('toast_copy_success'), 'success'))
+            .catch(() => showToast(t('toast_copy_failed'), 'error'));
+    }
+}
+
+function handleConvert() {
+    const url = urlInput.value.trim();
+    if (!url) { showToast(t('toast_empty_url')); return; }
+
+    const coords = extractCoordinates(url);
+    if (!coords) { showToast(t('toast_no_coords')); return; }
+
+    if (!isInsideBavaria(coords.lat, coords.lon)) { showToast(t('toast_outside_bavaria')); return; }
+
+    const utm = wgs84ToUtm32(coords.lat, coords.lon);
+    const baUrl = `https://atlas.bayern.de/?c=${utm.easting},${utm.northing}&z=16&r=0&l=atkis&crh=true&mid=1`;
+
+    resCoords.textContent = `${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`;
+    resUtm.textContent = `${utm.easting} / ${utm.northing}`;
+    resLink.href = baUrl;
+    resUrl.textContent = baUrl;
+    resultArea.classList.add('active');
+}
+
+// Event Listeners
+convertBtn.addEventListener('click', handleConvert);
+urlInput.addEventListener('keypress', e => { if (e.key === 'Enter') handleConvert(); });
+document.querySelectorAll('.lang-btn').forEach(btn => btn.addEventListener('click', () => setLanguage(btn.dataset.lang)));
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${btn.dataset.tab}`));
+    });
+});
+
+// Initialize
+setLanguage(currentLang);
+</script>
+
+</body>
+</html>
