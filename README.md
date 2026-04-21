@@ -1,5 +1,59 @@
 # Maps2BayernAtlas WordPress Plugin
 
+WordPress plugin for converting Google Maps and OpenStreetMap links into current BayernAtlas links, including bulk mode and admin settings.
+
+## Shortcode
+
+```text
+[maps2bayernatlas]
+```
+
+Optional attributes:
+
+```text
+[maps2bayernatlas zoom="16" title="Map Converter" button="Convert Now"]
+```
+
+The shortcode provides two modes:
+
+- Single conversion with coordinate and link output
+- Bulk conversion with up to 10 URLs simultaneously, collective output, and result list per URL
+
+## Installation
+
+1. Copy this folder as a plugin to `wp-content/plugins/maps2bayernatlas`.
+2. Activate the plugin in WordPress.
+3. Insert the shortcode into a page or post.
+
+## Technical Details
+
+- REST endpoint: `/wp-json/maps2bayernatlas/v1/convert`
+- REST bulk endpoint: `/wp-json/maps2bayernatlas/v1/convert-batch`
+- Supported:
+  - Google Maps (long URLs)
+  - Google Maps short links (`maps.app.goo.gl`, `goo.gl`)
+  - OpenStreetMap (`#map=...`, `mlat`/`mlon`)
+- Admin settings under `Settings -> Maps2BayernAtlas`:
+  - Conversions per minute per IP
+  - Minimum delay between requests
+  - Lock for identical repeat requests
+  - Maximum number of URLs per bulk request
+- Security measures:
+  - Host whitelist for supported map services
+  - Secure HTTP resolution of short links via the WordPress HTTP API
+  - Rate limiting and spam protection via WordPress Transients
+  - No direct file storage in temp directories
+
+## License & Acknowledgements
+
+This plugin is licensed under the **MIT License**.
+
+It is based on the [Maps2BayernAtlas](https://github.com/LukaWe/Maps2BayernAtlas) project, which provided the basis for the mathematical coordinate transformation (WGS84 to UTM Zone 32N) and the detection of Bavarian borders. The core logic was ported to object-oriented PHP for this WordPress plugin.
+
+---
+
+# Maps2BayernAtlas WordPress Plugin (Deutsch)
+
 WordPress-Plugin zur Umwandlung von Google-Maps- und OpenStreetMap-Links in aktuelle BayernAtlas-Links, inklusive Bulk-Modus und Admin-Einstellungen.
 
 ## Shortcode
@@ -48,4 +102,4 @@ Der Shortcode bietet zwei Modi:
 
 Dieses Plugin steht unter der **MIT-Lizenz**.
 
-Ein besonderer Dank geht an **LukaWe**, dessen [Maps2BayernAtlas](https://github.com/LukaWe/Maps2BayernAtlas) Referenzprojekt (ebenfalls unter MIT-Lizenz) die Grundlage für die mathematische Koordinatentransformation (WGS84 zu UTM Zone 32N) und die Erkennung der bayerischen Grenzen lieferte. Die Kernlogik wurde für dieses WordPress-Plugin in objektorientiertes PHP portiert.
+Es basiert auf dem [Maps2BayernAtlas](https://github.com/LukaWe/Maps2BayernAtlas) Projekt, welches die Grundlage für die mathematische Koordinatentransformation (WGS84 zu UTM Zone 32N) und die Erkennung der bayerischen Grenzen lieferte. Die Kernlogik wurde für dieses WordPress-Plugin in objektorientiertes PHP portiert.
