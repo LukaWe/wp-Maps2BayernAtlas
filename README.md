@@ -103,3 +103,45 @@ Der Shortcode bietet zwei Modi:
 Dieses Plugin steht unter der **MIT-Lizenz**.
 
 Es basiert auf dem [Maps2BayernAtlas](https://github.com/LukaWe/Maps2BayernAtlas) Projekt, welches die Grundlage für die mathematische Koordinatentransformation (WGS84 zu UTM Zone 32N) und die Erkennung der bayerischen Grenzen lieferte. Die Kernlogik wurde für dieses WordPress-Plugin in objektorientiertes PHP portiert.
+
+---
+
+# Maps2BayernAtlas WordPress Plugin (Bayerisch)
+
+Servus! Des is des Maps2BayernAtlas Plugin für WordPress. Damit kannst de ganzen Google-Links und OpenStreetMap-Schmarrn endlich in gscheide BayernAtlas-Links umwandeln. Praktisch, wennst wissen willst, wo genau d'Grenz am Acker is.
+
+## Shortcode
+
+Pack des einfach nei:
+```text
+[maps2bayernatlas]
+```
+
+Wennst es schick haben willst:
+```text
+[maps2bayernatlas zoom="16" title="Bayern-Finder" button="Auf geht's!"]
+```
+
+## Was des Ding alles ko
+
+- Einzelne Links umwandeln (für d'Schnellen)
+- Bulk-Modus (wennst glei a ganze Liste hast, bis zu 10 Stück auf oamoi)
+- Admin-Kram: Kannst einstellen, wie oft oana rumklicken darf (Spam-Schutz, gell?)
+
+## Einbau
+
+1. Schieb den Ordner nach `wp-content/plugins/maps2bayernatlas`.
+2. Druck auf 'Aktivieren' im WordPress-Backend.
+3. Pack den Shortcode auf dei Seitn. Passt.
+
+## Technik-G'schmarre
+
+- Host-Whitelist: Mir lassn bloß Google und OSM nei.
+- Rate-Limit: Damit dei Server ned ins Schwitzn kummt.
+- Koane Dateien im Temp-Ordner: Mir mistsn hintern uns wieder aus.
+
+## Lizenz & Danksagung
+
+Des Ganze lafft unter der **MIT-Lizenz**. Es basiert auf dem [Maps2BayernAtlas](https://github.com/LukaWe/Maps2BayernAtlas) Projekt, des de ganze Rechnerei übernommen hat. 
+
+Habe die Ehre!
